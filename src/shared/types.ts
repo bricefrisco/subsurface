@@ -7,6 +7,15 @@ export interface CapturedRequest {
   responseStatus: number
   responseHeaders: Record<string, string>
   responseBody?: string
+  responseBodyEncoding?: string
   timingMs: number
+  timestamp: number
+}
+
+export interface WebSocketFrame {
+  id: string
+  url: string
+  direction: 'inbound' | 'outbound'
+  data: string
   timestamp: number
 }
