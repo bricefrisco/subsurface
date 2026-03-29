@@ -1,6 +1,8 @@
 # subsurface
  
 > What your web app shows you is just the beginning. subsurface reverse-engineers the API beneath, then builds you a better interface to explore it.
+
+![subsurface banner](https://i.imgur.com/zIFptfx.png)
  
 Most web apps expose a fraction of what their backend can actually do. subsurface sits in your DevTools and watches the full conversation between browser and server — surfacing hidden pagination, undocumented parameters, and unexplored endpoints that the UI never touches. Then it goes a step further: it generates a purpose-built interface so you can actually explore what it finds.
  
