@@ -70,6 +70,8 @@ export default function CapturePane({
   currentOrigin,
   contentTypeFilter,
   onContentTypeFilterChange,
+  bodySearch,
+  onBodySearchChange,
 }: {
   requests: CapturedRequest[]
   onClear: () => void
@@ -78,6 +80,8 @@ export default function CapturePane({
   currentOrigin: string
   contentTypeFilter: string
   onContentTypeFilterChange: (v: string) => void
+  bodySearch: string
+  onBodySearchChange: (v: string) => void
 }) {
   const currentSite = getSite(currentOrigin)
 
@@ -97,10 +101,25 @@ export default function CapturePane({
       const ct = req.responseHeaders['content-type']?.split(';')[0].trim().toLowerCase() ?? ''
       return ct === contentTypeFilter
     })
+    .filter((req) => {
+      if (!bodySearch) return true
+      const term = bodySearch.toLowerCase()
+      return (
+        req.url.toLowerCase().includes(term) ||
+        req.method.toLowerCase().includes(term) ||
+        String(req.responseStatus).includes(term) ||
+        Object.entries(req.requestHeaders).some(
+          ([k, v]) => k.toLowerCase().includes(term) || v.toLowerCase().includes(term),
+        ) ||
+        req.requestBody?.toLowerCase().includes(term) ||
+        req.responseBody?.toLowerCase().includes(term)
+      )
+    })
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#3c3c3c] shrink-0">
+      <div className="flex flex-col border-b border-[#3c3c3c] shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5">
         <div className="flex items-center gap-3">
           <span className="text-[#858585] text-xs">
             {filtered.length} request{filtered.length !== 1 ? 's' : ''}
@@ -131,6 +150,28 @@ export default function CapturePane({
         >
           Clear
         </button>
+      </div>
+      {/* Row 2: body search */}
+      <div className="flex items-center gap-2 px-3 pb-1.5">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={bodySearch}
+            onChange={(e) => onBodySearchChange(e.target.value)}
+            placeholder="Search URL, method, status, headers, bodies..."
+            className="w-full bg-[#2d2d2d] text-[#d4d4d4] text-xs px-2 py-0.5 rounded border border-[#3c3c3c] focus:outline-none focus:border-[#569cd6] placeholder-[#585858] pr-6"
+          />
+          {bodySearch && (
+            <button
+              onClick={() => onBodySearchChange('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#585858] hover:text-[#d4d4d4] text-xs leading-none"
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
       </div>
 
       {filtered.length === 0 ? (

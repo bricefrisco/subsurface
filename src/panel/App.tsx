@@ -18,6 +18,7 @@ export default function App() {
   const [sameOriginOnly, setSameOriginOnly] = useState(true)
   const [currentOrigin, setCurrentOrigin] = useState('')
   const [contentTypeFilter, setContentTypeFilter] = useState('application/json')
+  const [bodySearch, setBodySearch] = useState('')
 
   const clearRequests = useCallback(() => {
     chrome.runtime.sendMessage({ type: 'CLEAR_REQUESTS' })
@@ -94,6 +95,8 @@ export default function App() {
             currentOrigin={currentOrigin}
             contentTypeFilter={contentTypeFilter}
             onContentTypeFilterChange={setContentTypeFilter}
+            bodySearch={bodySearch}
+            onBodySearchChange={setBodySearch}
           />
         )}
         {activeTab === 'analyze' && (
