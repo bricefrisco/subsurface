@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import type { CapturedRequest } from '../../shared/types'
 
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
@@ -145,7 +146,30 @@ export default function ExplorePane({ request }: { request: CapturedRequest | nu
           <p className="text-[#585858] text-xs">Click Analyze to generate a summary of this request.</p>
         )}
         {summary && (
-          <p className="text-xs text-[#d4d4d4] leading-relaxed whitespace-pre-wrap">{summary}</p>
+          <ReactMarkdown
+            components={{
+              p: ({ children }) => <p className="text-xs text-[#d4d4d4] leading-relaxed mb-2 last:mb-0">{children}</p>,
+              h1: ({ children }) => <h1 className="text-sm font-semibold text-white mt-4 mb-1 first:mt-0">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-xs font-semibold text-white mt-3 mb-1 first:mt-0">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-xs font-semibold text-[#9cdcfe] mt-2 mb-0.5 first:mt-0">{children}</h3>,
+              ul: ({ children }) => <ul className="text-xs text-[#d4d4d4] list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
+              ol: ({ children }) => <ol className="text-xs text-[#d4d4d4] list-decimal list-inside mb-2 space-y-0.5">{children}</ol>,
+              li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+              code: ({ children, className }) => {
+                const isBlock = className?.startsWith('language-')
+                return isBlock
+                  ? <code className="block bg-[#252526] border border-[#3c3c3c] rounded px-3 py-2 text-xs text-[#ce9178] whitespace-pre-wrap break-all my-2">{children}</code>
+                  : <code className="bg-[#252526] text-[#ce9178] px-1 rounded text-xs">{children}</code>
+              },
+              pre: ({ children }) => <>{children}</>,
+              strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+              em: ({ children }) => <em className="text-[#9cdcfe] not-italic">{children}</em>,
+              hr: () => <hr className="border-[#3c3c3c] my-3" />,
+              blockquote: ({ children }) => <blockquote className="border-l-2 border-[#569cd6] pl-3 text-[#858585] my-2">{children}</blockquote>,
+            }}
+          >
+            {summary}
+          </ReactMarkdown>
         )}
       </div>
     </div>
