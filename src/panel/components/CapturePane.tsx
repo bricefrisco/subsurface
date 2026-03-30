@@ -1,13 +1,13 @@
+import psl from 'psl'
 import type { CapturedRequest } from '../../shared/types'
 
 // Returns the registrable domain (eTLD+1) for a URL string, e.g.
-// "https://api.example.com/foo" → "example.com".
-// Uses a two-label heuristic which covers the common case; known two-part
-// TLDs (co.uk, com.au, …) are not handled.
+// "https://api.example.com/foo" → "example.com"
+// "https://api.example.co.uk/foo" → "example.co.uk"
 function getSite(url: string): string {
   try {
-    const parts = new URL(url).hostname.split('.')
-    return parts.length > 1 ? parts.slice(-2).join('.') : parts[0]
+    const parsed = psl.parse(new URL(url).hostname)
+    return parsed.error ? '' : (parsed.domain ?? '')
   } catch {
     return ''
   }

@@ -1,7 +1,6 @@
-import type { CapturedRequest, WebSocketFrame } from '../shared/types'
+import type { CapturedRequest } from '../shared/types'
 
 const requests: CapturedRequest[] = []
-const wsFrames: WebSocketFrame[] = []
 const connectedPorts: chrome.runtime.Port[] = []
 
 chrome.runtime.onConnect.addListener((port) => {
@@ -32,15 +31,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.type === 'CLEAR_REQUESTS') {
     requests.length = 0
-    wsFrames.length = 0
     broadcast({ type: 'REQUESTS_CLEARED' })
-    sendResponse({ ok: true })
-  }
-
-  if (message.type === 'WEBSOCKET_FRAME') {
-    const frame: WebSocketFrame = { id: crypto.randomUUID(), ...message.payload }
-    wsFrames.push(frame)
-    broadcast({ type: 'NEW_WS_FRAME', payload: frame })
     sendResponse({ ok: true })
   }
 

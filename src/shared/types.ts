@@ -11,11 +11,3 @@ export interface CapturedRequest {
   timingMs: number
   timestamp: number
 }
-
-export interface WebSocketFrame {
-  id: string
-  url: string
-  direction: 'inbound' | 'outbound'
-  data: string
-  timestamp: number
-}
