@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { CapturedRequest } from '../shared/types'
 import CapturePane from './components/CapturePane'
+import AnalyzePane from './components/AnalyzePane'
 import Placeholder from './components/Placeholder'
 
 type Tab = 'capture' | 'analyze' | 'replay' | 'explore'
@@ -15,6 +16,7 @@ const TABS: { id: Tab; label: string }[] = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('capture')
   const [requests, setRequests] = useState<CapturedRequest[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<CapturedRequest | null>(null)
   const [sameOriginOnly, setSameOriginOnly] = useState(true)
   const [currentOrigin, setCurrentOrigin] = useState('')
   const [contentTypeFilter, setContentTypeFilter] = useState('application/json')
@@ -23,6 +25,12 @@ export default function App() {
   const clearRequests = useCallback(() => {
     chrome.runtime.sendMessage({ type: 'CLEAR_REQUESTS' })
     setRequests([])
+    setSelectedRequest(null)
+  }, [])
+
+  const handleSelectRequest = useCallback((req: CapturedRequest) => {
+    setSelectedRequest(req)
+    setActiveTab('analyze')
   }, [])
 
   useEffect(() => {
@@ -40,6 +48,7 @@ export default function App() {
       }
       if (msg.type === 'REQUESTS_CLEARED') {
         setRequests([])
+        setSelectedRequest(null)
       }
     })
 
@@ -47,13 +56,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // For navigations, onNavigated supplies the URL directly — no eval needed.
     const onNavigated = (url: string) => {
       try { setCurrentOrigin(new URL(url).origin) }
       catch { setCurrentOrigin('') }
     }
 
-    // Bootstrap from the current page via eval.
     chrome.devtools.inspectedWindow.eval(
       'window.location.origin',
       (result, exceptionInfo) => {
@@ -90,6 +97,8 @@ export default function App() {
           <CapturePane
             requests={requests}
             onClear={clearRequests}
+            selectedRequestId={selectedRequest?.id ?? null}
+            onSelectRequest={handleSelectRequest}
             sameOriginOnly={sameOriginOnly}
             onSameOriginOnlyChange={setSameOriginOnly}
             currentOrigin={currentOrigin}
@@ -100,10 +109,7 @@ export default function App() {
           />
         )}
         {activeTab === 'analyze' && (
-          <Placeholder
-            title="Analyze"
-            description="Groups requests by endpoint and diffs them over time. Surfaces hidden parameters, pagination cursors, and undocumented patterns via local AI."
-          />
+          <AnalyzePane request={selectedRequest} />
         )}
         {activeTab === 'replay' && (
           <Placeholder

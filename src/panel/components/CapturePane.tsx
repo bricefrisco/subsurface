@@ -29,7 +29,15 @@ function statusColor(status: number): string {
   return '#858585'
 }
 
-function RequestRow({ request }: { request: CapturedRequest }) {
+function RequestRow({
+  request,
+  isSelected,
+  onSelect,
+}: {
+  request: CapturedRequest
+  isSelected: boolean
+  onSelect: (req: CapturedRequest) => void
+}) {
   let host = ''
   let path = request.url
   try {
@@ -41,7 +49,13 @@ function RequestRow({ request }: { request: CapturedRequest }) {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1 border-b border-[#2a2a2a] hover:bg-[#2d2d2d] cursor-default text-xs">
+    <div
+      onClick={() => onSelect(request)}
+      className={[
+        'flex items-center gap-2 px-3 py-1 border-b border-[#2a2a2a] cursor-pointer text-xs',
+        isSelected ? 'bg-[#094771]' : 'hover:bg-[#2d2d2d]',
+      ].join(' ')}
+    >
       <span
         className="w-16 shrink-0 font-semibold"
         style={{ color: METHOD_COLORS[request.method] ?? '#858585' }}
@@ -52,7 +66,7 @@ function RequestRow({ request }: { request: CapturedRequest }) {
         {request.responseStatus || '—'}
       </span>
       <span className="flex-1 min-w-0 truncate" title={request.url}>
-        <span className="text-[#585858]">{host}</span>
+        <span className={isSelected ? 'text-[#a0bfd4]' : 'text-[#585858]'}>{host}</span>
         <span>{path}</span>
       </span>
       <span className="w-16 text-right text-[#585858] shrink-0">
@@ -65,6 +79,8 @@ function RequestRow({ request }: { request: CapturedRequest }) {
 export default function CapturePane({
   requests,
   onClear,
+  selectedRequestId,
+  onSelectRequest,
   sameOriginOnly,
   onSameOriginOnlyChange,
   currentOrigin,
@@ -75,6 +91,8 @@ export default function CapturePane({
 }: {
   requests: CapturedRequest[]
   onClear: () => void
+  selectedRequestId: string | null
+  onSelectRequest: (req: CapturedRequest) => void
   sameOriginOnly: boolean
   onSameOriginOnlyChange: (v: boolean) => void
   currentOrigin: string
@@ -187,7 +205,12 @@ export default function CapturePane({
             <span className="w-16 text-right shrink-0">Time</span>
           </div>
           {filtered.map((req) => (
-            <RequestRow key={req.id} request={req} />
+            <RequestRow
+              key={req.id}
+              request={req}
+              isSelected={req.id === selectedRequestId}
+              onSelect={onSelectRequest}
+            />
           ))}
         </div>
       )}
