@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { CapturedRequest } from '../shared/types'
 import CapturePane from './components/CapturePane'
 import AnalyzePane from './components/AnalyzePane'
+import ExplorePane from './components/ExplorePane'
 import Placeholder from './components/Placeholder'
 
 type Tab = 'capture' | 'analyze' | 'replay' | 'explore'
@@ -118,10 +119,7 @@ export default function App() {
           />
         )}
         {activeTab === 'explore' && (
-          <Placeholder
-            title="Explore"
-            description="Generates a purpose-built UI from the discovered data shape — a product catalog, a timeline, a filterable table."
-          />
+          <ExplorePane request={selectedRequest} />
         )}
       </div>
     </div>
