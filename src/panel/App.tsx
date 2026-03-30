@@ -35,31 +35,51 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    chrome.runtime.sendMessage(
-      { type: 'GET_REQUESTS' },
-      (res: { requests: CapturedRequest[] }) => {
-        setRequests(res?.requests ?? [])
-      },
-    )
+    let active = true
+    let currentPort: chrome.runtime.Port | null = null
 
-    const port = chrome.runtime.connect({ name: 'panel' })
-    port.onMessage.addListener((msg: { type: string; payload: CapturedRequest }) => {
-      if (msg.type === 'NEW_REQUEST') {
-        setRequests((prev) => [...prev, msg.payload])
-      }
-      if (msg.type === 'REQUESTS_CLEARED') {
-        setRequests([])
-        setSelectedRequest(null)
-      }
-    })
+    function sync() {
+      chrome.runtime.sendMessage(
+        { type: 'GET_REQUESTS' },
+        (res: { requests: CapturedRequest[] }) => {
+          if (res?.requests) setRequests(res.requests)
+        },
+      )
+    }
 
-    return () => port.disconnect()
+    function connect() {
+      if (!active) return
+      currentPort = chrome.runtime.connect({ name: 'panel' })
+      currentPort.onMessage.addListener((msg: { type: string; payload: CapturedRequest }) => {
+        if (msg.type === 'NEW_REQUEST') {
+          setRequests((prev) => [...prev, msg.payload])
+        }
+        if (msg.type === 'REQUESTS_CLEARED') {
+          setRequests([])
+          setSelectedRequest(null)
+        }
+      })
+      currentPort.onDisconnect.addListener(() => {
+        // Background service worker was killed — reconnect and re-sync
+        sync()
+        connect()
+      })
+    }
+
+    sync()
+    connect()
+
+    return () => {
+      active = false
+      currentPort?.disconnect()
+    }
   }, [])
 
   useEffect(() => {
     const onNavigated = (url: string) => {
       try { setCurrentOrigin(new URL(url).origin) }
       catch { setCurrentOrigin('') }
+      setContentTypeFilter('')
     }
 
     chrome.devtools.inspectedWindow.eval(
