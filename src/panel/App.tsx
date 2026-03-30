@@ -13,6 +13,8 @@ const TABS: { id: Tab; label: string }[] = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('capture')
   const [requests, setRequests] = useState<CapturedRequest[]>([])
+  const [sameOriginOnly, setSameOriginOnly] = useState(true)
+  const [currentOrigin, setCurrentOrigin] = useState('')
 
   const clearRequests = useCallback(() => {
     chrome.runtime.sendMessage({ type: 'CLEAR_REQUESTS' })
@@ -40,6 +42,26 @@ export default function App() {
     return () => port.disconnect()
   }, [])
 
+  useEffect(() => {
+    // For navigations, onNavigated supplies the URL directly — no eval needed.
+    const onNavigated = (url: string) => {
+      try { setCurrentOrigin(new URL(url).origin) }
+      catch { setCurrentOrigin('') }
+    }
+
+    // Bootstrap from the current page via eval.
+    chrome.devtools.inspectedWindow.eval(
+      'window.location.origin',
+      (result, exceptionInfo) => {
+        if (exceptionInfo) return
+        setCurrentOrigin((result as string) ?? '')
+      },
+    )
+
+    chrome.devtools.network.onNavigated.addListener(onNavigated)
+    return () => chrome.devtools.network.onNavigated.removeListener(onNavigated)
+  }, [])
+
   return (
     <div className="flex flex-col h-screen bg-[#1e1e1e] text-[#d4d4d4] font-mono text-sm">
       <div className="flex items-center border-b border-[#3c3c3c] px-2 shrink-0">
@@ -61,7 +83,13 @@ export default function App() {
 
       <div className="flex-1 overflow-hidden">
         {activeTab === 'capture' && (
-          <CapturePane requests={requests} onClear={clearRequests} />
+          <CapturePane
+            requests={requests}
+            onClear={clearRequests}
+            sameOriginOnly={sameOriginOnly}
+            onSameOriginOnlyChange={setSameOriginOnly}
+            currentOrigin={currentOrigin}
+          />
         )}
         {activeTab === 'analyze' && (
           <Placeholder
@@ -88,19 +116,54 @@ export default function App() {
 
 // ── Capture ────────────────────────────────────────────────────────────────
 
+// Returns the registrable domain (eTLD+1) for a URL string, e.g.
+// "https://api.example.com/foo" → "example.com".
+// Uses a two-label heuristic which covers the common case; known two-part
+// TLDs (co.uk, com.au, …) are not handled.
+function getSite(url: string): string {
+  try {
+    const parts = new URL(url).hostname.split('.')
+    return parts.length > 1 ? parts.slice(-2).join('.') : parts[0]
+  } catch {
+    return ''
+  }
+}
+
 function CapturePane({
   requests,
   onClear,
+  sameOriginOnly,
+  onSameOriginOnlyChange,
+  currentOrigin,
 }: {
   requests: CapturedRequest[]
   onClear: () => void
+  sameOriginOnly: boolean
+  onSameOriginOnlyChange: (v: boolean) => void
+  currentOrigin: string
 }) {
+  const currentSite = getSite(currentOrigin)
+  const filtered = sameOriginOnly
+    ? requests.filter((req) => getSite(req.url) === currentSite)
+    : requests
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#3c3c3c] shrink-0">
-        <span className="text-[#858585] text-xs">
-          {requests.length} request{requests.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[#858585] text-xs">
+            {filtered.length} request{filtered.length !== 1 ? 's' : ''}
+          </span>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none" title={currentSite || 'site unknown'}>
+            <input
+              type="checkbox"
+              checked={sameOriginOnly}
+              onChange={(e) => onSameOriginOnlyChange(e.target.checked)}
+              className="accent-[#569cd6] cursor-pointer"
+            />
+            <span className="text-[#858585] text-xs">Same site only</span>
+          </label>
+        </div>
         <button
           onClick={onClear}
           className="text-xs text-[#858585] hover:text-[#d4d4d4] transition-colors px-2 py-0.5 rounded hover:bg-[#2d2d2d]"
@@ -109,7 +172,7 @@ function CapturePane({
         </button>
       </div>
 
-      {requests.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="flex items-center justify-center flex-1 text-[#585858] text-xs">
           Waiting for requests...
         </div>
@@ -121,7 +184,7 @@ function CapturePane({
             <span className="flex-1 min-w-0">URL</span>
             <span className="w-16 text-right shrink-0">Time</span>
           </div>
-          {requests.map((req) => (
+          {filtered.map((req) => (
             <RequestRow key={req.id} request={req} />
           ))}
         </div>
