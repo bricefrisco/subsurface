@@ -3,7 +3,7 @@ import type { CapturedRequest } from '../shared/types'
 import CapturePane from './components/CapturePane'
 import AnalyzePane from './components/AnalyzePane'
 import ExplorePane from './components/ExplorePane'
-import Placeholder from './components/Placeholder'
+import ReplayPane from './components/ReplayPane'
 
 type Tab = 'capture' | 'analyze' | 'replay' | 'explore'
 
@@ -113,10 +113,7 @@ export default function App() {
           <AnalyzePane request={selectedRequest} />
         )}
         {activeTab === 'replay' && (
-          <Placeholder
-            title="Replay"
-            description="Re-issue any captured request with modified parameters. Auth headers and cookies are forwarded automatically."
-          />
+          <ReplayPane request={selectedRequest} />
         )}
         {activeTab === 'explore' && (
           <ExplorePane request={selectedRequest} />
